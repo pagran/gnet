@@ -49,6 +49,13 @@ type eventloop struct {
 	eventHandler EventHandler    // user eventHandler
 }
 
+type RegisterCallback func()
+
+type registerHook struct {
+	conn     Conn
+	callback RegisterCallback
+}
+
 func (el *eventloop) getLogger() logging.Logger {
 	return el.engine.opts.Logger
 }
@@ -69,6 +76,13 @@ func (el *eventloop) closeAllSockets() {
 	for _, c := range el.udpSockets {
 		_ = el.closeConn(c, nil)
 	}
+}
+
+func (el *eventloop) registerWithCb(itf interface{}) error {
+	hook := itf.(*registerHook)
+	err := el.register(hook.conn)
+	hook.callback()
+	return err
 }
 
 func (el *eventloop) register(itf interface{}) error {

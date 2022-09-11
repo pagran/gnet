@@ -213,10 +213,15 @@ func (cli *Client) Enroll(c net.Conn) (Conn, error) {
 	default:
 		return nil, gerrors.ErrUnsupportedProtocol
 	}
-	err = cli.el.poller.UrgentTrigger(cli.el.register, gc)
+
+	registerCh := make(chan interface{})
+	err = cli.el.poller.UrgentTrigger(cli.el.registerWithCb, &registerHook{conn: gc, callback: func() {
+		close(registerCh)
+	}})
 	if err != nil {
 		gc.Close()
 		return nil, err
 	}
+	<-registerCh
 	return gc, nil
 }
